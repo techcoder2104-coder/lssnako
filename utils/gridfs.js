@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 import { GridFSBucket } from 'mongodb';
-import { Readable } from 'stream';
 
 let gridfsBucket = null;
 
@@ -13,73 +12,58 @@ export const initGridFS = () => {
       return true;
     }
   } catch (error) {
-    console.warn('⚠️ GridFS initialization failed:', error.message);
-    return false;
+    console.warn('⚠️ GridFS init error:', error.message);
   }
+  return false;
 };
 
 export const uploadToGridFS = async (file, filename) => {
   if (!gridfsBucket) {
-    // Try to reinitialize
-    const initialized = initGridFS();
-    if (!initialized) {
-      throw new Error('GridFS not initialized. MongoDB connection required.');
-    }
+    throw new Error('GridFS not initialized');
   }
 
   return new Promise((resolve, reject) => {
-    const uploadStream = gridfsBucket.openUploadStream(filename, {
-      metadata: {
-        originalFilename: file.originalname,
-        mimetype: file.mimetype,
-        uploadedAt: new Date(),
-      },
-    });
+    try {
+      const uploadStream = gridfsBucket.openUploadStream(filename);
 
-    const bufferStream = Readable.from([file.buffer]);
-
-    uploadStream.on('finish', () => {
-      resolve({
-        _id: uploadStream.id,
-        filename: filename,
+      uploadStream.end(file.buffer, (error) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve({
+            _id: uploadStream.id,
+            filename: filename,
+          });
+        }
       });
-    });
-
-    uploadStream.on('error', (error) => {
-      reject(new Error(`GridFS upload failed: ${error.message}`));
-    });
-
-    bufferStream.pipe(uploadStream);
+    } catch (error) {
+      reject(error);
+    }
   });
 };
 
 export const downloadFromGridFS = async (fileId) => {
   if (!gridfsBucket) {
-    initGridFS();
-  }
-
-  if (!gridfsBucket) {
     throw new Error('GridFS not initialized');
   }
 
-  return gridfsBucket.openDownloadStream(new mongoose.Types.ObjectId(fileId));
+  try {
+    return gridfsBucket.openDownloadStream(new mongoose.Types.ObjectId(fileId));
+  } catch (error) {
+    throw new Error(`File not found: ${error.message}`);
+  }
 };
 
 export const deleteFromGridFS = async (fileId) => {
-  if (!gridfsBucket) {
-    initGridFS();
-  }
-
   if (!gridfsBucket) {
     return;
   }
 
   try {
     await gridfsBucket.delete(new mongoose.Types.ObjectId(fileId));
-    console.log(`Deleted from GridFS: ${fileId}`);
   } catch (error) {
-    console.error('Error deleting from GridFS:', error);
+    console.error('GridFS delete error:', error);
   }
 };
 
-export const getGridFSBucket = () => gridfsBucket;
+export default gridfsBucket;
