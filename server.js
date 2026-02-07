@@ -29,19 +29,39 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 // Middleware
-const allowedOrigins = [
-  process.env.FRONTEND_URL || 'http://localhost:5173',
-  process.env.ADMIN_URL || 'http://localhost:5174',
-  'http://localhost:5175'
-];
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  // Allow all Vercel URLs in production
+  if (process.env.NODE_ENV === 'production') {
+    if (origin && origin.includes('vercel.app')) {
+      res.header('Access-Control-Allow-Origin', origin);
+    }
+  } else {
+    // Allow localhost in development
+    if (origin && origin.includes('localhost')) {
+      res.header('Access-Control-Allow-Origin', origin);
+    }
+  }
+  
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
 
-// Add Vercel preview URLs (they have build hashes)
-if (process.env.NODE_ENV === 'production') {
-  allowedOrigins.push(/vercel\.app$/);
-}
-
+// Also use cors package as fallback
 app.use(cors({
-  origin: allowedOrigins,
+  origin: [
+    process.env.FRONTEND_URL || 'http://localhost:5173',
+    process.env.ADMIN_URL || 'http://localhost:5174',
+    /vercel\.app$/
+  ],
   credentials: true
 }));
 app.use(express.json());
