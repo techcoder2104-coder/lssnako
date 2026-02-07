@@ -168,7 +168,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // Create product with image upload (admin)
-router.post("/", upload.single("productImage"), async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const {
       name,
@@ -188,19 +188,10 @@ router.post("/", upload.single("productImage"), async (req, res) => {
     } = req.body;
 
     console.log("Creating product...");
-    console.log("File uploaded:", req.file ? "Yes" : "No");
-    if (req.file) {
-      console.log("File path:", req.file.path);
-      console.log("File filename:", req.file.filename);
-    }
     console.log("Image URL from body:", req.body.imageUrl);
 
     // Validate required fields
     if (!name || !category || !price) {
-      // Delete uploaded file if validation fails
-      if (req.file) {
-        fs.unlinkSync(req.file.path);
-      }
       return res
         .status(400)
         .json({ error: "Name, category, and price are required" });
@@ -208,18 +199,14 @@ router.post("/", upload.single("productImage"), async (req, res) => {
 
     // Determine image URL
     let imageUrl;
-    if (req.file) {
-      // Use file reference
-      imageUrl = req.file.filename;
-      console.log("Using uploaded file:", imageUrl);
-    } else if (req.body.imageUrl) {
-      // If image URL provided, use that
+    if (req.body.imageUrl) {
+      // Image URL from Cloudinary (frontend uploads directly)
       imageUrl = req.body.imageUrl;
-      console.log("Using provided URL:", imageUrl);
+      console.log("Using image URL:", imageUrl);
     } else {
       return res
         .status(400)
-        .json({ error: "Either upload an image or provide an image URL" });
+        .json({ error: "Image URL is required" });
     }
 
     // Parse features and specifications if they're JSON strings

@@ -65,25 +65,12 @@ router.get('/:id', async (req, res) => {
 })
 
 // Create banner (admin)
-router.post('/', uploadBanner.single('bannerImage'), async (req, res) => {
+router.post('/', async (req, res) => {
   try {
-    const { title, type, order } = req.body
+    const { title, type, order, imageUrl } = req.body
 
-    if (!title || !type) {
-      if (req.file) {
-        fs.unlinkSync(req.file.path)
-      }
-      return res.status(400).json({ error: 'Title and type are required' })
-    }
-
-    // Determine image URL
-    let imageUrl
-    if (req.file) {
-      imageUrl = req.file.filename
-    } else if (req.body.imageUrl) {
-      imageUrl = req.body.imageUrl
-    } else {
-      return res.status(400).json({ error: 'Image is required' })
+    if (!title || !type || !imageUrl) {
+      return res.status(400).json({ error: 'Title, type, and image URL are required' })
     }
 
     const banner = new Banner({
