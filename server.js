@@ -29,12 +29,19 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 // Middleware
+const allowedOrigins = [
+  process.env.FRONTEND_URL || 'http://localhost:5173',
+  process.env.ADMIN_URL || 'http://localhost:5174',
+  'http://localhost:5175'
+];
+
+// Add Vercel preview URLs (they have build hashes)
+if (process.env.NODE_ENV === 'production') {
+  allowedOrigins.push(/vercel\.app$/);
+}
+
 app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL || 'http://localhost:5173',
-    process.env.ADMIN_URL || 'http://localhost:5174',
-    'http://localhost:5175'
-  ],
+  origin: allowedOrigins,
   credentials: true
 }));
 app.use(express.json());
