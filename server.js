@@ -28,41 +28,19 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// Middleware
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  
-  // Allow all Vercel URLs in production
-  if (process.env.NODE_ENV === 'production') {
-    if (origin && origin.includes('vercel.app')) {
-      res.header('Access-Control-Allow-Origin', origin);
-    }
-  } else {
-    // Allow localhost in development
-    if (origin && origin.includes('localhost')) {
-      res.header('Access-Control-Allow-Origin', origin);
-    }
-  }
-  
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  
-  if (req.method === 'OPTIONS') {
-    res.sendStatus(200);
-  } else {
-    next();
-  }
-});
-
-// Also use cors package as fallback
+// Middleware - CORS
 app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL || 'http://localhost:5173',
-    process.env.ADMIN_URL || 'http://localhost:5174',
-    /vercel\.app$/
-  ],
-  credentials: true
+  origin: (origin, callback) => {
+    // Allow all origins in production (Vercel)
+    if (!origin || origin.includes('vercel.app') || origin.includes('localhost')) {
+      callback(null, true);
+    } else {
+      callback(null, true);
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 
