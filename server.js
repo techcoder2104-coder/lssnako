@@ -106,6 +106,11 @@ app.use('/api/banners', bannerRoutes);
 app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/delivery-zones', deliveryZoneRoutes);
 
+// Root route
+app.get('/', (req, res) => {
+  res.json({ message: 'TRADon API Server', version: '1.0.0' });
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'Server is running' });
