@@ -16,10 +16,9 @@ const buildImageUrl = (banner, req) => {
     // External URL - return as is
     return banner.image
   } else {
-    // Local file - build full URL
-    const protocol = req.protocol || 'http'
-    const host = req.get('host') || 'localhost:5000'
-    return `${protocol}://${host}${banner.image}`
+    // Local file - use backend URL from env
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000'
+    return `${backendUrl}${banner.image}`
   }
 }
 
@@ -81,7 +80,9 @@ router.post('/', uploadBanner.single('bannerImage'), async (req, res) => {
     // Determine image URL
     let imageUrl
     if (req.file) {
-      imageUrl = `/uploads/banners/${req.file.filename}`
+      // Use full backend URL for image
+      const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000'
+      imageUrl = `${backendUrl}/uploads/banners/${req.file.filename}`
     } else if (req.body.imageUrl) {
       imageUrl = req.body.imageUrl
     } else {

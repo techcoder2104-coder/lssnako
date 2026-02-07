@@ -209,8 +209,9 @@ router.post("/", upload.single("productImage"), async (req, res) => {
     // Determine image URL
     let imageUrl;
     if (req.file) {
-      // Use local file path
-      imageUrl = `/uploads/products/${req.file.filename}`;
+      // Use full backend URL for image
+      const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+      imageUrl = `${backendUrl}/uploads/products/${req.file.filename}`;
       console.log("Using uploaded file, image URL:", imageUrl);
     } else if (req.body.imageUrl) {
       // If image URL provided, use that
