@@ -20,10 +20,8 @@ import searchRoutes from './routes/search.js';
 import bannerRoutes from './routes/banners.js';
 import onboardingRoutes from './routes/onboarding.js';
 import deliveryZoneRoutes from './routes/deliveryZones.js';
-import filesRoutes from './routes/files.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { createDefaultTags, autoTagProducts } from './services/taggingService.js';
-import { initGridFS } from './utils/gridfs.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -67,9 +65,6 @@ if (process.env.MONGODB_URI) {
       console.log('✅ MongoDB connected successfully');
       console.log('Database:', mongoose.connection.name);
       
-      // Initialize GridFS
-      initGridFS();
-      
       // Initialize default tags
       await createDefaultTags();
       // Auto-tag products
@@ -110,7 +105,6 @@ app.use('/api/search', searchRoutes);
 app.use('/api/banners', bannerRoutes);
 app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/delivery-zones', deliveryZoneRoutes);
-app.use('/api/files', filesRoutes);
 
 // Root route
 app.get('/', (req, res) => {

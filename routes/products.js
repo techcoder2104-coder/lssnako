@@ -6,7 +6,6 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import mongoose from "mongoose";
-import { uploadToGridFS } from "../utils/gridfs.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -210,20 +209,13 @@ router.post("/", upload.single("productImage"), async (req, res) => {
     // Determine image URL
     let imageUrl;
     if (req.file) {
-      try {
-        // Upload to GridFS
-        const filename = `product-${Date.now()}-${req.file.originalname}`;
-        const result = await uploadToGridFS(req.file, filename);
-        imageUrl = `/api/files/${result._id}`;
-        console.log("Uploaded to GridFS:", imageUrl);
-      } catch (error) {
-        console.error("GridFS upload error:", error);
-        return res.status(500).json({ error: "Image upload failed: " + error.message });
-      }
+      // Use file reference
+      imageUrl = req.file.filename;
+      console.log("Using uploaded file:", imageUrl);
     } else if (req.body.imageUrl) {
       // If image URL provided, use that
       imageUrl = req.body.imageUrl;
-      console.log("Using provided URL, image URL:", imageUrl);
+      console.log("Using provided URL:", imageUrl);
     } else {
       return res
         .status(400)
