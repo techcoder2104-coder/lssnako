@@ -1,12 +1,28 @@
-import { v2 as cloudinary } from 'cloudinary';
+let cloudinary = null;
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+// Initialize Cloudinary if available
+if (process.env.CLOUDINARY_CLOUD_NAME) {
+  try {
+    const CloudinaryModule = await import('cloudinary').catch(() => null);
+    if (CloudinaryModule) {
+      cloudinary = CloudinaryModule.v2;
+      cloudinary.config({
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+        api_key: process.env.CLOUDINARY_API_KEY,
+        api_secret: process.env.CLOUDINARY_API_SECRET,
+      });
+      console.log('✅ Cloudinary initialized');
+    }
+  } catch (error) {
+    console.warn('⚠️ Cloudinary initialization failed:', error.message);
+  }
+}
 
 export const uploadToCloudinary = async (file) => {
+  if (!cloudinary) {
+    throw new Error('Cloudinary not configured. Install: npm install cloudinary');
+  }
+  
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
@@ -24,6 +40,8 @@ export const uploadToCloudinary = async (file) => {
 };
 
 export const deleteFromCloudinary = async (publicId) => {
+  if (!cloudinary) return;
+  
   try {
     await cloudinary.uploader.destroy(publicId);
   } catch (error) {

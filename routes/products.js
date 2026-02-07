@@ -6,7 +6,6 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import mongoose from "mongoose";
-import { uploadToCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -210,15 +209,9 @@ router.post("/", upload.single("productImage"), async (req, res) => {
     // Determine image URL
     let imageUrl;
     if (req.file) {
-      // Upload to Cloudinary
-      try {
-        const result = await uploadToCloudinary(req.file);
-        imageUrl = result.secure_url;
-        console.log("Uploaded to Cloudinary:", imageUrl);
-      } catch (error) {
-        console.error("Cloudinary upload error:", error);
-        return res.status(500).json({ error: "Image upload failed" });
-      }
+      // If file uploaded, use local file path
+      imageUrl = `/uploads/products/${req.file.filename}`;
+      console.log("Using uploaded file, image URL:", imageUrl);
     } else if (req.body.imageUrl) {
       // If image URL provided, use that
       imageUrl = req.body.imageUrl;
