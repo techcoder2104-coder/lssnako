@@ -1,12 +1,5 @@
 import express from 'express'
 import Banner from '../models/Banner.js'
-import uploadBanner from '../middleware/uploadBanner.js'
-import fs from 'fs'
-import path from 'path'
-import { fileURLToPath } from 'url'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
 
 const router = express.Router()
 
@@ -83,25 +76,16 @@ router.post('/', async (req, res) => {
     await banner.save()
     res.status(201).json(banner)
   } catch (error) {
-    if (req.file) {
-      try {
-        fs.unlinkSync(req.file.path)
-      } catch (e) {
-        console.log('Could not delete temp file')
-      }
-    }
+    console.error('Banner creation error:', error)
     res.status(500).json({ error: error.message })
   }
 })
 
 // Update banner (admin)
-router.put('/:id', uploadBanner.single('bannerImage'), async (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const banner = await Banner.findById(req.params.id)
     if (!banner) {
-      if (req.file) {
-        fs.unlinkSync(req.file.path)
-      }
       return res.status(404).json({ error: 'Banner not found' })
     }
 
@@ -111,30 +95,15 @@ router.put('/:id', uploadBanner.single('bannerImage'), async (req, res) => {
     if (req.body.order) banner.order = parseInt(req.body.order)
     if (req.body.active !== undefined) banner.active = req.body.active === 'true' || req.body.active === true
 
-    // Handle image update
-    if (req.file) {
-      // Delete old image if it's a local file
-      if (banner.image && banner.image.startsWith('/uploads/')) {
-        const oldImagePath = path.join(__dirname, '../' + banner.image)
-        if (fs.existsSync(oldImagePath)) {
-          fs.unlinkSync(oldImagePath)
-        }
-      }
-      banner.image = `/uploads/banners/${req.file.filename}`
-    } else if (req.body.imageUrl) {
+    // Handle image URL update
+    if (req.body.imageUrl) {
       banner.image = req.body.imageUrl
     }
 
     await banner.save()
     res.json(banner)
   } catch (error) {
-    if (req.file) {
-      try {
-        fs.unlinkSync(req.file.path)
-      } catch (e) {
-        console.log('Could not delete temp file')
-      }
-    }
+    console.error('Banner update error:', error)
     res.status(500).json({ error: error.message })
   }
 })
