@@ -5,15 +5,26 @@ import { Readable } from 'stream';
 let gridfsBucket = null;
 
 export const initGridFS = () => {
-  if (mongoose.connection.readyState === 1) {
-    gridfsBucket = new GridFSBucket(mongoose.connection.getClient().db());
-    console.log('✅ GridFS initialized');
+  try {
+    if (mongoose.connection.readyState === 1) {
+      const db = mongoose.connection.getClient().db();
+      gridfsBucket = new GridFSBucket(db);
+      console.log('✅ GridFS initialized');
+      return true;
+    }
+  } catch (error) {
+    console.warn('⚠️ GridFS initialization failed:', error.message);
+    return false;
   }
 };
 
 export const uploadToGridFS = async (file, filename) => {
   if (!gridfsBucket) {
-    throw new Error('GridFS not initialized');
+    // Try to reinitialize
+    const initialized = initGridFS();
+    if (!initialized) {
+      throw new Error('GridFS not initialized. MongoDB connection required.');
+    }
   }
 
   return new Promise((resolve, reject) => {
@@ -25,22 +36,28 @@ export const uploadToGridFS = async (file, filename) => {
       },
     });
 
-    const bufferStream = Readable.from(file.buffer);
+    const bufferStream = Readable.from([file.buffer]);
 
-    bufferStream.pipe(uploadStream)
-      .on('finish', () => {
-        resolve({
-          _id: uploadStream.id,
-          filename: filename,
-        });
-      })
-      .on('error', (error) => {
-        reject(new Error(`GridFS upload failed: ${error.message}`));
+    uploadStream.on('finish', () => {
+      resolve({
+        _id: uploadStream.id,
+        filename: filename,
       });
+    });
+
+    uploadStream.on('error', (error) => {
+      reject(new Error(`GridFS upload failed: ${error.message}`));
+    });
+
+    bufferStream.pipe(uploadStream);
   });
 };
 
 export const downloadFromGridFS = async (fileId) => {
+  if (!gridfsBucket) {
+    initGridFS();
+  }
+
   if (!gridfsBucket) {
     throw new Error('GridFS not initialized');
   }
@@ -50,7 +67,11 @@ export const downloadFromGridFS = async (fileId) => {
 
 export const deleteFromGridFS = async (fileId) => {
   if (!gridfsBucket) {
-    throw new Error('GridFS not initialized');
+    initGridFS();
+  }
+
+  if (!gridfsBucket) {
+    return;
   }
 
   try {
