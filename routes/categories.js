@@ -16,14 +16,21 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get single category with subcategories
+// Get single category with subcategories (by ID or slug)
 router.get('/:id', async (req, res) => {
   try {
-    // Validate MongoDB ObjectId
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ error: 'Invalid category ID format' });
+    let category;
+    
+    // Try to find by ObjectId first
+    if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+      category = await Category.findById(req.params.id);
     }
-    const category = await Category.findById(req.params.id);
+    
+    // If not found, try by slug
+    if (!category) {
+      category = await Category.findOne({ slug: req.params.id });
+    }
+    
     if (!category) {
       return res.status(404).json({ error: 'Category not found' });
     }
