@@ -4,6 +4,7 @@ import uploadBanner from '../middleware/uploadBanner.js'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { uploadToGridFS } from '../utils/gridfs.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -15,10 +16,12 @@ const buildImageUrl = (banner, req) => {
   if (banner.image.startsWith('http')) {
     // External URL - return as is
     return banner.image
+  } else if (banner.image.startsWith('/api/files')) {
+    // GridFS URL - return as is
+    return banner.image
   } else {
-    // Local file - use backend URL from env
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000'
-    return `${backendUrl}${banner.image}`
+    // Legacy local file - return as is (for backward compatibility)
+    return banner.image
   }
 }
 
@@ -80,9 +83,15 @@ router.post('/', uploadBanner.single('bannerImage'), async (req, res) => {
     // Determine image URL
     let imageUrl
     if (req.file) {
-      // Use full backend URL for image
-      const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000'
-      imageUrl = `${backendUrl}/uploads/banners/${req.file.filename}`
+      try {
+        // Upload to GridFS
+        const filename = `banner-${Date.now()}-${req.file.originalname}`
+        const result = await uploadToGridFS(req.file, filename)
+        imageUrl = `/api/files/${result._id}`
+      } catch (error) {
+        console.error('GridFS upload error:', error)
+        return res.status(500).json({ error: 'Image upload failed: ' + error.message })
+      }
     } else if (req.body.imageUrl) {
       imageUrl = req.body.imageUrl
     } else {
