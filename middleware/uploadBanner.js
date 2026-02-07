@@ -6,10 +6,12 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-// Create uploads directory if it doesn't exist
+// Create uploads directory if it doesn't exist (only on local, not on Vercel)
 const uploadsDir = path.join(__dirname, '../uploads/banners')
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true })
+if (process.env.NODE_ENV !== 'production') {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true })
+  }
 }
 
 // Configure storage
