@@ -4,6 +4,7 @@ import uploadBanner from '../middleware/uploadBanner.js'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { uploadToCloudinary } from '../utils/cloudinary.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -81,7 +82,13 @@ router.post('/', uploadBanner.single('bannerImage'), async (req, res) => {
     // Determine image URL
     let imageUrl
     if (req.file) {
-      imageUrl = `/uploads/banners/${req.file.filename}`
+      try {
+        const result = await uploadToCloudinary(req.file, 'tradon/banners')
+        imageUrl = result.secure_url
+      } catch (error) {
+        console.error('Cloudinary upload error:', error)
+        return res.status(500).json({ error: 'Image upload failed: ' + error.message })
+      }
     } else if (req.body.imageUrl) {
       imageUrl = req.body.imageUrl
     } else {
